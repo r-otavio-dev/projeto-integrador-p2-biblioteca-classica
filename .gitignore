@@ -1,0 +1,43 @@
+# Arquivos compilados em C/C++
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+*.out
+*.app
+biblioteca
+
+# Dev-C++
+*.dev
+*.layout
+*.win
+Makefile.win
+Debug/
+Release/
+
+# Builds e cobertura
+build/
+bin/
+dist/
+*.gcda
+*.gcno
+*.gcov
+
+# Editores e sistema operacional
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Temporários
+*.tmp
+*.temp
+*.bak
+*~
+
