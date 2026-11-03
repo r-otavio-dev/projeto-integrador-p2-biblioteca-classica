@@ -17,7 +17,3 @@ void exibirRelatorios(void) {
     printf("[Modulo D] Relatorios ainda nao implementados.\n");
 }
 
-void ordenarRegistrosBubbleSort(void) {
-    printf("[Modulo D] Bubble Sort ainda nao implementado.\n");
-}
-

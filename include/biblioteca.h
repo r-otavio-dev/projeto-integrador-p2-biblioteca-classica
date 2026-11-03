@@ -11,8 +11,9 @@
  * Os campos definitivos de fichário, acervo e empréstimos não aparecem no PDF.
  */
 typedef struct {
-    int id;
-    char descricao[100];
+    int id; /* Codigo do livro. */
+    char descricao[100]; /* Titulo do livro. */
+    char autor[100];
     int status;
 } RegistroBiblioteca;
 
