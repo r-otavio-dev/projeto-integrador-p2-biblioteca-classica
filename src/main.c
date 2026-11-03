@@ -2,22 +2,9 @@
 #include "biblioteca.h"
 
 static void exibirCabecalho(void) {
-    printf("\n========================================\n");
-    printf("  BIBLIOTECA CLASSICA - PROJETO P2\n");
-    printf("========================================\n");
-}
-
-static void exibirMenu(void) {
-    printf("\n1. Inserir/cadastrar registro\n");
-    printf("2. Buscar registro\n");
-    printf("3. Modificar registro\n");
-    printf("4. Remover registro\n");
-    printf("5. Exibir grade de controle\n");
-    printf("6. Listar registros\n");
-    printf("7. Exibir relatorios\n");
-    printf("8. Ordenar registros (Bubble Sort)\n");
-    printf("0. Sair\n");
-    printf("Opcao: ");
+    printf("\n============================================================\n");
+    printf("   BIBLIOTECA CLASSICA - FICHARIO, ACERVO E EMPRESTIMOS\n");
+    printf("============================================================\n");
 }
 
 int main(void) {
@@ -25,40 +12,26 @@ int main(void) {
 
     do {
         exibirCabecalho();
-        exibirMenu();
+        printf("1. Modulo de Acervo de Livros (Pedro)\n");
+        printf("2. Modulo de Fichario, Buscas e Ordenacao (Tavin)\n");
+        printf("3. Modulo de Emprestimos e Devolucoes (Kaue)\n");
+        printf("4. Modulo de Reservas e Relatorios (Joelson)\n");
+        printf("0. Encerrar o sistema\n");
 
-        if (scanf("%d", &opcao) != 1) {
-            int caractere;
-            while ((caractere = getchar()) != '\n' && caractere != EOF) {
-                /* Descarta a entrada inválida. */
-            }
-            opcao = -1;
-        }
+        opcao = lerInteiro("Opcao: ");
 
         switch (opcao) {
             case 1:
-                cadastrarRegistro();
+                moduloLivros();
                 break;
             case 2:
-                buscarRegistro();
+                moduloBuscasEFichario();
                 break;
             case 3:
-                modificarRegistro();
+                moduloEmprestimos();
                 break;
             case 4:
-                removerRegistro();
-                break;
-            case 5:
-                exibirGradeControle();
-                break;
-            case 6:
-                listarRegistros();
-                break;
-            case 7:
-                exibirRelatorios();
-                break;
-            case 8:
-                ordenarRegistrosBubbleSort();
+                moduloRelatoriosEReservas();
                 break;
             case 0:
                 printf("Encerrando o sistema.\n");
@@ -70,4 +43,3 @@ int main(void) {
 
     return 0;
 }
-

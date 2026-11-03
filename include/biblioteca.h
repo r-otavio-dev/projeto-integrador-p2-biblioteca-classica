@@ -1,42 +1,71 @@
 #ifndef BIBLIOTECA_H
 #define BIBLIOTECA_H
 
-/* Valores provisórios: o grupo deve confirmar o tamanho adequado. */
-#define CAPACIDADE_REGISTROS 100
-#define LINHAS_GRADE 5
-#define COLUNAS_GRADE 5
+#define CAPACIDADE 50
+#define CATEGORIAS 4
+#define SITUACOES_LIVRO 2
 
-/*
- * Modelo inicial mínimo para o Checkpoint 1.
- * Os campos definitivos de fichário, acervo e empréstimos não aparecem no PDF.
- */
 typedef struct {
-    int id; /* Codigo do livro. */
-    char descricao[100]; /* Titulo do livro. */
-    char autor[100];
-    int status;
-} RegistroBiblioteca;
+    int codigo;
+    char titulo[50];
+    char autor[40];
+    char categoria[30];
+    float valorReposicao;
+    char statusDisponivel;
+    int ativo;
+} Livro;
 
-/* Base em memória RAM e contadores no escopo global, conforme o padrão da aula. */
-extern RegistroBiblioteca registros[CAPACIDADE_REGISTROS];
-extern int totalRegistros;
-extern int gradeControle[LINHAS_GRADE][COLUNAS_GRADE];
+typedef struct {
+    int codigoLeitor;
+    char nome[50];
+    char telefone[20];
+    char tipoAssociado;
+    float saldoMultas;
+    int ativo;
+} Leitor;
 
-/* Integrante A: inserção e cadastro. */
-void cadastrarRegistro(void);
+typedef struct {
+    int idEmprestimo;
+    int codigoLivro;
+    int codigoLeitor;
+    char nomeLeitor[50];
+    int diasPrazo;
+    float taxaAtrasoDiaria;
+    char situacao;
+} Emprestimo;
 
-/* Integrante B: busca e modificação. */
-void buscarRegistro(void);
-void modificarRegistro(void);
+typedef struct {
+    int idReserva;
+    char tituloDesejado[50];
+    char categoriaObra[30];
+    float custoEstimado;
+    char prioridade;
+    int atendida;
+} Reserva;
 
-/* Integrante C: remoção e matriz. */
-void removerRegistro(void);
-void exibirGradeControle(void);
+extern Livro acervoLivros[CAPACIDADE];
+extern Leitor ficharioLeitores[CAPACIDADE];
+extern Emprestimo listaEmprestimos[CAPACIDADE];
+extern Reserva listaReservas[CAPACIDADE];
+extern int totalLivros;
+extern int totalLeitores;
+extern int totalEmprestimos;
+extern int totalReservas;
+extern int matrizEstatisticas[CATEGORIAS][SITUACOES_LIVRO];
 
-/* Integrante D: relatórios e ordenação. */
-void listarRegistros(void);
-void exibirRelatorios(void);
-void ordenarRegistrosBubbleSort(void);
+int lerInteiro(const char mensagem[]);
+float lerFloat(const char mensagem[]);
+char lerCaractere(const char mensagem[]);
+void lerTexto(const char mensagem[], char texto[], int tamanho);
+
+int localizarLivro(int codigo);
+int localizarLeitor(int codigo);
+int localizarEmprestimo(int idEmprestimo);
+int localizarReserva(int idReserva);
+
+void moduloLivros(void);
+void moduloBuscasEFichario(void);
+void moduloEmprestimos(void);
+void moduloRelatoriosEReservas(void);
 
 #endif
-

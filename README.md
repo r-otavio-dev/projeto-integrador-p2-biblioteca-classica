@@ -1,70 +1,56 @@
 # Projeto Integrador P2 - Biblioteca Clássica
 
-Sistema de gestão retrô (CRUD em C) para o tema oficial 7: **Biblioteca Clássica (Fichário, Acervo e Empréstimos)**.
+Sistema de terminal em C para gerenciar o fichário, o acervo, os empréstimos e as reservas de uma biblioteca.
 
-> Estado atual: estrutura inicial do Checkpoint 1. O programa compila e apresenta o menu-base, mas as regras de negócio dos quatro módulos ainda devem ser implementadas pelo grupo.
+## Funcionalidades
 
-## Exigências do professor
+### Módulo 1 - Pedro: acervo de livros
 
-### Objetivo e padrão de qualidade
+- Cadastro de livros com validação do limite da memória.
+- Listagem, edição e exclusão de livros.
+- Controle de disponibilidade do livro.
 
-- Desenvolver, em **quarteto**, um software completo de terminal em C.
-- Organizar o sistema em **4 módulos independentes**, com responsabilidade direta de um integrante por módulo.
-- Manter a base de dados em memória RAM usando `struct` e vetor de tamanho adequado.
-- Usar menu interativo em loop contínuo com `do-while` e `switch-case`.
-- Modularizar rigorosamente o código em funções separadas por integrante.
-- Incluir processamento analítico: buscas, relatórios e ordenação.
-- Usar funções `void` para tarefas sem retorno e funções com tipo de retorno para cálculos/regras de negócio.
-- No padrão apresentado em aula, manter a estrutura e o vetor da base em escopo global para que as funções possam acessá-los sem ponteiros avançados.
+### Módulo 2 - Tavin: fichário, buscas e ordenação
 
-### Os quatro módulos obrigatórios
+- Cadastro, listagem, busca, edição e remoção de leitores.
+- Busca de livros por código ou título.
+- Busca de livros por autor.
+- Ordenação do acervo por título usando Bubble Sort.
 
-| Responsável | Módulo | Responsabilidade indicada pelo professor |
-|---|---|---|
-| Integrante A | Inserção e cadastro | Validação dos limites da memória RAM |
-| Integrante B | Busca e modificação | Atualização de status/dados |
-| Integrante C | Remoção e matriz | Grade de controle relacionada ao tema |
-| Integrante D | Relatórios e ordenação | Cálculos analíticos e Bubble Sort |
+### Módulo 3 - Kauê: empréstimos e devoluções
 
-### Avaliação - total de 5,0 pontos
+- Registro de empréstimos com validação do livro e do leitor.
+- Listagem e renovação de empréstimos ativos.
+- Devolução do livro e cálculo de multa por atraso.
 
-- **Checkpoint 1 - 1,0 ponto:** arquitetura inicial, `struct`, menu-base e criação do repositório no GitHub.
-- **Checkpoint 2 - 1,0 ponto:** módulos funcionais de cadastro e listagem em funções separadas.
-- **Checkpoint 3 - 1,0 ponto:** sistema completo com relatórios, ordenação e auditoria de commits no Git.
-- **Entrega final - 2,0 pontos:** gravação no MS Teams, com câmera aberta, demonstração do sistema rodando e código explicado por cada integrante, além do `.zip` do código comentado.
+### Módulo 4 - Joelson: reservas e relatórios
 
-### Avaliação individual por pares
+- Cadastro, listagem, edição e remoção de reservas.
+- Relatório geral do acervo, leitores, empréstimos e multas.
+- Matriz de categorias por disponibilidade do livro.
 
-- Cada estudante distribui **6 fichas** entre os colegas do grupo.
-- A nota individual segue a fórmula:
+## Estruturas utilizadas
 
-```text
-nota_individual = nota_grupo * (0,5 + 0,5 * fichas_recebidas / 6)
-```
+O projeto possui quatro estruturas e quatro vetores globais:
 
-- Pela explicação do professor, quem participa plenamente pode manter 100% da nota; quem não participa pode perder metade da nota do grupo.
+- `Livro acervoLivros[50]`
+- `Leitor ficharioLeitores[50]`
+- `Emprestimo listaEmprestimos[50]`
+- `Reserva listaReservas[50]`
 
-### Cuidados técnicos enfatizados na aula
+Os dados são mantidos em memória RAM durante a execução. Ao fechar o programa, os dados são apagados.
 
-- Em vetores de tamanho `N`, os índices válidos vão de `0` a `N - 1`.
-- Sempre validar a capacidade antes de inserir um novo registro.
-- Ao procurar maior/menor valor, inicializar a comparação com um dado real do vetor, e não com zero arbitrário.
-- Usar o endereço correto no `scanf` (por exemplo, `&registro.campo` para campos numéricos).
-- Evitar concentrar toda a lógica em um `main()` monolítico; o `main()` deve coordenar as chamadas dos módulos.
+## Exigências atendidas
 
-## O que não foi definido no PDF
-
-O material não informa datas dos checkpoints, nomes dos integrantes, campos definitivos das estruturas, capacidade oficial dos vetores, significado da matriz para a biblioteca, regras de prazo/multa de empréstimos, persistência em arquivo, padrão de nomes ou visibilidade do repositório. Essas decisões precisam ser confirmadas com o professor ou definidas pelo grupo.
-
-## Sugestão inicial de implementação
-
-As decisões abaixo são apenas uma base técnica e **não são requisitos oficiais**:
-
-- `RegistroBiblioteca` começa com `id`, `descricao` e `status`; o grupo deve substituir esses campos pelo modelo aprovado para fichário, acervo e empréstimos.
-- `CAPACIDADE_REGISTROS` começa em 100 apenas como valor provisório.
-- A grade de controle é declarada, mas seu significado e dimensões ficam pendentes de definição.
-- Cada módulo obrigatório fica em um arquivo `.c` separado, facilitando a divisão do trabalho e a auditoria de commits.
-- O repositório começa privado para proteger o trabalho acadêmico em andamento.
+- Quatro módulos separados por integrante.
+- Structs com campos `int`, `float`, `char` e strings.
+- Vetores globais e validação de capacidade.
+- Menus com `do-while` e `switch-case`.
+- Funções separadas para cadastro, listagem, busca, edição e remoção.
+- Funções com retorno para buscas, contagens e cálculos.
+- Busca sequencial, relatório analítico e Bubble Sort.
+- Matriz global de categoria por disponibilidade.
+- Relacionamento entre livros, leitores e empréstimos.
 
 ## Organização
 
@@ -73,20 +59,20 @@ As decisões abaixo são apenas uma base técnica e **não são requisitos ofici
 ├── include/
 │   └── biblioteca.h
 ├── src/
+│   ├── buscas.c
 │   ├── dados.c
+│   ├── entrada.c
 │   ├── main.c
-│   ├── modulo_a_cadastro.c
-│   ├── modulo_b_busca_modificacao.c
-│   ├── modulo_c_remocao_matriz.c
-│   └── modulo_d_relatorios_ordenacao.c
-├── .gitignore
+│   ├── modulo_emprestimos.c
+│   ├── modulo_livros.c
+│   └── modulo_reservas_relatorios.c
 ├── Makefile
 └── README.md
 ```
 
 ## Como compilar
 
-Com GCC/MinGW:
+Com GCC e Make:
 
 ```bash
 make
@@ -98,23 +84,17 @@ Ou diretamente:
 gcc -std=c11 -Wall -Wextra -pedantic -Iinclude src/*.c -o biblioteca
 ```
 
-No Dev-C++, crie um projeto de console em C, adicione todos os arquivos de `src/` ao projeto e inclua a pasta `include/` no caminho de cabeçalhos.
+Para executar no Linux:
 
-## Próximos passos do grupo
+```bash
+./biblioteca
+```
 
-1. Preencher os nomes e associar um integrante a cada módulo.
-2. Confirmar com o professor os campos das estruturas e o papel da matriz no tema 7.
-3. Definir a capacidade adequada dos vetores.
-4. Cada integrante implementar seu próprio módulo e fazer commits identificáveis.
-5. Testar os limites dos vetores, entradas inválidas, buscas sem resultado e ordenação.
-6. Manter o código comentado para a entrega final.
+No Dev-C++, crie um projeto de console em C, adicione os arquivos da pasta `src` e inclua a pasta `include` no caminho de cabeçalhos.
 
-## Divisão da equipe
+## Observações
 
-| Módulo | Integrante | Status |
-|---|---|---|
-| A - Inserção e cadastro | A definir | Estrutura criada |
-| B - Busca e modificação | A definir | Estrutura criada |
-| C - Remoção e matriz | A definir | Estrutura criada |
-| D - Relatórios e ordenação | A definir | Estrutura criada |
-
+- `D` significa livro disponível e `E` significa livro emprestado.
+- `P` significa leitor padrão e `V` significa leitor VIP/pesquisador.
+- A exclusão de livros e leitores é lógica, preservando os registros relacionados.
+- Livros emprestados e leitores com empréstimos ativos não podem ser excluídos.
