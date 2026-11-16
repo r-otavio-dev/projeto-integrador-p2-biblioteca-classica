@@ -1,8 +1,6 @@
 #ifndef KAUE_H
 #define KAUE_H
 
-#include "comum.h"
-
 /* Kaue: emprestimos/devolucoes. Os IDs dos cadastros ligam os tres vetores. */
 int buscarIndiceEmprestimo(int id) {
     int i;
@@ -44,25 +42,21 @@ void atualizarNomesEmprestimos(void) {
     }
 }
 
-int salvarEmprestimosCSV(void) {
+void salvarEmprestimosCSV(void) {
     int i;
-    FILE *arquivo = fopen("emprestimos.csv.tmp", "w");
-    if (arquivo == NULL) {
-        printf("[ERRO] Nao foi possivel abrir emprestimos.csv.tmp para escrita.\n");
-        return 0;
-    }
+    FILE *arquivo = abrirArquivo("emprestimos.csv", "w");
     for (i = 0; i < totalEmprestimos; i++) {
         struct Emprestimo e = listaEmprestimos[i];
         fprintf(arquivo, "%d;%d;%d;%s;%d;%.2f;%c\n", e.idEmprestimo,
                 e.codigoLivro, e.codigoLeitor, e.nomeLeitor,
                 e.diasPrazo, e.taxaAtrasoDiaria, e.situacao);
     }
-    return fecharCSV(arquivo, "emprestimos.csv.tmp", "emprestimos.csv");
+    fecharArquivo(arquivo);
 }
 
 int carregarEmprestimosCSV(void) {
-    char linha[512], *campos[7];
-    int numeroLinha = 0, livro, leitor;
+    char linha[512], extra;
+    int numeroLinha = 0, livro, leitor, lidos;
     struct Emprestimo e;
     FILE *arquivo = fopen("emprestimos.csv", "r");
     if (arquivo == NULL) {
@@ -72,21 +66,22 @@ int carregarEmprestimosCSV(void) {
     totalEmprestimos = 0;
     while (fgets(linha, sizeof linha, arquivo) != NULL) {
         numeroLinha++;
+        /* O ultimo %c so le se houver lixo depois dos sete campos. */
+        lidos = sscanf(linha, "%4d;%4d;%4d;%49[^;\r\n];%3d;%f;%c %c",
+                       &e.idEmprestimo, &e.codigoLivro, &e.codigoLeitor,
+                       e.nomeLeitor, &e.diasPrazo, &e.taxaAtrasoDiaria,
+                       &e.situacao, &extra);
         if ((strchr(linha, '\n') == NULL && !feof(arquivo)) ||
-            totalEmprestimos >= MAX_REGISTROS || !separarCamposCSV(linha, campos, 7) ||
-            !converterInteiro(campos[0], 1, INT_MAX, &e.idEmprestimo) ||
+            totalEmprestimos >= MAX_REGISTROS || lidos != 7 ||
+            e.idEmprestimo <= 0 || e.codigoLivro <= 0 || e.codigoLeitor <= 0 ||
             buscarIndiceEmprestimo(e.idEmprestimo) != -1 ||
-            !converterInteiro(campos[1], 1, INT_MAX, &e.codigoLivro) ||
-            !converterInteiro(campos[2], 1, INT_MAX, &e.codigoLeitor) ||
-            !copiarCampo(e.nomeLeitor, sizeof e.nomeLeitor, campos[3]) ||
-            !converterInteiro(campos[4], 1, 365, &e.diasPrazo) ||
-            !converterReal(campos[5], 0.0f, 1000.0f, &e.taxaAtrasoDiaria) ||
-            strlen(campos[6]) != 1 || strchr("AF", campos[6][0]) == NULL) {
+            e.diasPrazo < 1 || e.diasPrazo > 365 ||
+            !(e.taxaAtrasoDiaria >= 0 && e.taxaAtrasoDiaria <= 1000) ||
+            (e.situacao != 'A' && e.situacao != 'F')) {
             printf("[ERRO] emprestimos.csv: registro invalido na linha %d.\n", numeroLinha);
-            fclose(arquivo);
+            fecharArquivo(arquivo);
             return 0;
         }
-        e.situacao = campos[6][0];
         livro = buscarIndiceLivro(e.codigoLivro);
         leitor = buscarIndiceLeitor(e.codigoLeitor);
         if (livro == -1 || leitor == -1 || !acervoLivros[livro].ativo ||
@@ -94,17 +89,12 @@ int carregarEmprestimosCSV(void) {
             strcmp(e.nomeLeitor, ficharioLeitores[leitor].nome) != 0 ||
             (e.situacao == 'A' && livroPossuiEmprestimoAtivo(e.codigoLivro))) {
             printf("[ERRO] emprestimos.csv: vinculos inconsistentes na linha %d.\n", numeroLinha);
-            fclose(arquivo);
+            fecharArquivo(arquivo);
             return 0;
         }
         listaEmprestimos[totalEmprestimos++] = e;
     }
-    if (ferror(arquivo)) {
-        printf("[ERRO] Falha durante a leitura de emprestimos.csv.\n");
-        fclose(arquivo);
-        return 0;
-    }
-    fclose(arquivo);
+    fecharArquivo(arquivo);
     return 1;
 }
 
@@ -127,12 +117,12 @@ void cadastrarEmprestimo(void) {
         printf("[ERRO] Limite de %d emprestimos atingido.\n", MAX_REGISTROS);
         return;
     }
-    e.idEmprestimo = lerInteiro("ID do novo emprestimo: ", 1, INT_MAX);
+    e.idEmprestimo = lerInteiro("ID do novo emprestimo: ", 1, 9999);
     if (buscarIndiceEmprestimo(e.idEmprestimo) != -1) {
         printf("[ERRO] ID de emprestimo ja cadastrado.\n");
         return;
     }
-    e.codigoLivro = lerInteiro("Codigo do livro: ", 1, INT_MAX);
+    e.codigoLivro = lerInteiro("Codigo do livro: ", 1, 9999);
     livro = buscarIndiceLivro(e.codigoLivro);
     if (livro == -1 || !acervoLivros[livro].ativo) {
         printf("[ERRO] Livro inexistente ou inativo.\n");
@@ -142,7 +132,7 @@ void cadastrarEmprestimo(void) {
         printf("[ERRO] Livro indisponivel: ja esta emprestado.\n");
         return;
     }
-    e.codigoLeitor = lerInteiro("Codigo do leitor: ", 1, INT_MAX);
+    e.codigoLeitor = lerInteiro("Codigo do leitor: ", 1, 9999);
     leitor = buscarIndiceLeitor(e.codigoLeitor);
     if (leitor == -1 || !ficharioLeitores[leitor].ativo) {
         printf("[ERRO] Leitor inexistente ou inativo.\n");
@@ -151,11 +141,12 @@ void cadastrarEmprestimo(void) {
     strcpy(e.nomeLeitor, ficharioLeitores[leitor].nome);
     e.diasPrazo = lerInteiro("Prazo de devolucao (dias, 1 a 365): ", 1, 365);
     e.taxaAtrasoDiaria = lerReal("Multa por dia de atraso (R$, 0 a 1000): ", 0.0f, 1000.0f);
-    e.taxaAtrasoDiaria = (int)(e.taxaAtrasoDiaria * 100.0f + 0.5f) / 100.0f;
     e.situacao = 'A';
     listaEmprestimos[totalEmprestimos++] = e;
     acervoLivros[livro].statusDisponivel = 'E';
-    if (salvarEstadoCSV()) printf("[OK] Emprestimo cadastrado; livro marcado como emprestado.\n");
+    salvarLivrosCSV();
+    salvarEmprestimosCSV();
+    printf("[OK] Emprestimo cadastrado; livro marcado como emprestado.\n");
 }
 
 void listarEmprestimos(void) {
@@ -182,7 +173,7 @@ void buscarEmprestimo(void) {
     int modo, i, livro, indice, encontrados = 0;
     modo = lerInteiro("Buscar por 1. ID ou 2. Nome do leitor/titulo do livro: ", 1, 2);
     if (modo == 1) {
-        indice = buscarIndiceEmprestimo(lerInteiro("ID procurado: ", 1, INT_MAX));
+        indice = buscarIndiceEmprestimo(lerInteiro("ID procurado: ", 1, 9999));
         if (indice != -1) exibirEmprestimo(indice);
         else printf("Nenhum emprestimo encontrado.\n");
         return;
@@ -201,7 +192,7 @@ void buscarEmprestimo(void) {
 
 void editarEmprestimo(void) {
     int indice;
-    indice = buscarIndiceEmprestimo(lerInteiro("ID do emprestimo a renovar/editar: ", 1, INT_MAX));
+    indice = buscarIndiceEmprestimo(lerInteiro("ID do emprestimo a renovar/editar: ", 1, 9999));
     if (indice == -1) {
         printf("[ERRO] Emprestimo nao encontrado.\n");
         return;
@@ -214,15 +205,14 @@ void editarEmprestimo(void) {
     printf("O novo prazo corresponde ao TOTAL de dias permitidos desde o emprestimo.\n");
     listaEmprestimos[indice].diasPrazo = lerInteiro("Novo prazo total (dias, 1 a 365): ", 1, 365);
     listaEmprestimos[indice].taxaAtrasoDiaria = lerReal("Nova multa diaria (R$, 0 a 1000): ", 0.0f, 1000.0f);
-    listaEmprestimos[indice].taxaAtrasoDiaria =
-        (int)(listaEmprestimos[indice].taxaAtrasoDiaria * 100.0f + 0.5f) / 100.0f;
-    if (salvarEstadoCSV()) printf("[OK] Emprestimo atualizado na memoria e no CSV.\n");
+    salvarEmprestimosCSV();
+    printf("[OK] Emprestimo atualizado na memoria e no CSV.\n");
 }
 
 void devolverEmprestimo(void) {
     int indice, livro, leitor, diasDecorridos, diasAtraso;
     float multa, novoSaldo;
-    indice = buscarIndiceEmprestimo(lerInteiro("ID do emprestimo a devolver: ", 1, INT_MAX));
+    indice = buscarIndiceEmprestimo(lerInteiro("ID do emprestimo a devolver: ", 1, 9999));
     if (indice == -1) {
         printf("[ERRO] Emprestimo nao encontrado.\n");
         return;
@@ -243,23 +233,24 @@ void devolverEmprestimo(void) {
     if (diasAtraso < 0) diasAtraso = 0;
     multa = diasAtraso * listaEmprestimos[indice].taxaAtrasoDiaria;
     novoSaldo = ficharioLeitores[leitor].saldoMultas + multa;
-    if (!isfinite(novoSaldo) || novoSaldo > 1000000.0f) {
+    if (!(novoSaldo >= 0 && novoSaldo <= 1000000.0f)) {
         printf("[ERRO] A devolucao excederia o saldo maximo de multas de R$ 1000000.00.\n");
         return;
     }
     listaEmprestimos[indice].situacao = 'F';
     acervoLivros[livro].statusDisponivel = 'D';
     ficharioLeitores[leitor].saldoMultas = novoSaldo;
-    if (salvarEstadoCSV()) {
-        printf("[OK] Devolucao registrada; livro disponivel. Atraso: %d dia(s). Multa: R$ %.2f.\n",
-               diasAtraso, multa);
-        printf("Saldo de multas do leitor: R$ %.2f.\n", novoSaldo);
-    }
+    salvarLivrosCSV();
+    salvarLeitoresCSV();
+    salvarEmprestimosCSV();
+    printf("[OK] Devolucao registrada; livro disponivel. Atraso: %d dia(s). Multa: R$ %.2f.\n",
+           diasAtraso, multa);
+    printf("Saldo de multas do leitor: R$ %.2f.\n", novoSaldo);
 }
 
 void removerEmprestimo(void) {
     int indice, i;
-    indice = buscarIndiceEmprestimo(lerInteiro("ID do emprestimo a remover: ", 1, INT_MAX));
+    indice = buscarIndiceEmprestimo(lerInteiro("ID do emprestimo a remover: ", 1, 9999));
     if (indice == -1) {
         printf("[ERRO] Emprestimo nao encontrado.\n");
         return;
@@ -270,7 +261,8 @@ void removerEmprestimo(void) {
     }
     for (i = indice; i < totalEmprestimos - 1; i++) listaEmprestimos[i] = listaEmprestimos[i + 1];
     totalEmprestimos--;
-    if (salvarEstadoCSV()) printf("[OK] Historico removido do CSV; multas existentes foram preservadas.\n");
+    salvarEmprestimosCSV();
+    printf("[OK] Historico removido do CSV; multas existentes foram preservadas.\n");
 }
 
 void moduloEmprestimos(void) {

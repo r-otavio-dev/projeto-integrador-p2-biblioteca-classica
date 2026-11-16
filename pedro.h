@@ -2,7 +2,6 @@
 #define PEDRO_H
 
 /* Pedro: acervo, persistencia e manutencao de livros. */
-#include "comum.h"
 
 int buscarIndiceLivro(int id) {
     int i;
@@ -12,13 +11,9 @@ int buscarIndiceLivro(int id) {
     return -1;
 }
 
-int salvarLivrosCSV(void) {
+void salvarLivrosCSV(void) {
     int i;
-    FILE *arquivo = fopen("livros.csv.tmp", "w");
-    if (arquivo == NULL) {
-        printf("[ERRO] Nao foi possivel abrir livros.csv.tmp.\n");
-        return 0;
-    }
+    FILE *arquivo = abrirArquivo("livros.csv", "w");
     for (i = 0; i < totalLivros; i++) {
         fprintf(arquivo, "%d;%s;%s;%s;%.2f;%c;%d\n",
                 acervoLivros[i].codigo, acervoLivros[i].titulo,
@@ -26,45 +21,40 @@ int salvarLivrosCSV(void) {
                 acervoLivros[i].valorReposicao,
                 acervoLivros[i].statusDisponivel, acervoLivros[i].ativo);
     }
-    return fecharCSV(arquivo, "livros.csv.tmp", "livros.csv");
+    fecharArquivo(arquivo);
 }
 
 int carregarLivrosCSV(void) {
-    char linha[512], *campos[7];
-    int numeroLinha = 0;
-    FILE *arquivo = fopen("livros.csv", "r");
+    char linha[512], extra;
+    int numeroLinha = 0, lidos;
     struct Livro livro;
-    if (arquivo == NULL) {
-        printf("[ERRO] Nao foi possivel ler livros.csv.\n");
-        return 0;
-    }
+    FILE *arquivo = abrirArquivo("livros.csv", "r");
     totalLivros = 0;
     while (fgets(linha, sizeof linha, arquivo) != NULL) {
         numeroLinha++;
-        if ((strchr(linha, '\n') == NULL && !feof(arquivo)) ||
-            totalLivros >= MAX_REGISTROS ||
-            !separarCamposCSV(linha, campos, 7) ||
-            !converterInteiro(campos[0], 1, INT_MAX, &livro.codigo) ||
+        /* As larguras deixam espaco para o '\0' no final de cada texto.
+           O ultimo %c detecta qualquer conteudo extra depois dos 7 campos. */
+        lidos = sscanf(linha, "%4d;%49[^;\r\n];%39[^;\r\n];%29[^;\r\n];%f;%c;%1d %c",
+                       &livro.codigo, livro.titulo, livro.autor, livro.categoria,
+                       &livro.valorReposicao, &livro.statusDisponivel,
+                       &livro.ativo, &extra);
+        if (lidos != 7 || (strchr(linha, '\n') == NULL && !feof(arquivo)) ||
+            totalLivros >= MAX_REGISTROS || livro.codigo <= 0 ||
             buscarIndiceLivro(livro.codigo) != -1 ||
-            !copiarCampo(livro.titulo, sizeof livro.titulo, campos[1]) ||
-            !copiarCampo(livro.autor, sizeof livro.autor, campos[2]) ||
-            !copiarCampo(livro.categoria, sizeof livro.categoria, campos[3]) ||
-            !converterReal(campos[4], 0, 1000000, &livro.valorReposicao) ||
-            strlen(campos[5]) != 1 || strchr("DE", campos[5][0]) == NULL ||
-            !converterInteiro(campos[6], 1, 1, &livro.ativo)) {
+            strspn(livro.titulo, " \t") == strlen(livro.titulo) ||
+            strspn(livro.autor, " \t") == strlen(livro.autor) ||
+            strspn(livro.categoria, " \t") == strlen(livro.categoria) ||
+            !(livro.valorReposicao >= 0 && livro.valorReposicao <= 1000000) ||
+            (livro.statusDisponivel != 'D' && livro.statusDisponivel != 'E') ||
+            livro.ativo != 1) {
             printf("[ERRO] livros.csv: linha %d invalida ou ID duplicado.\n", numeroLinha);
-            fclose(arquivo);
+            fecharArquivo(arquivo);
             return 0;
         }
-        livro.statusDisponivel = campos[5][0];
-        acervoLivros[totalLivros++] = livro;
+        acervoLivros[totalLivros] = livro;
+        totalLivros++;
     }
-    if (ferror(arquivo)) {
-        printf("[ERRO] Falha durante a leitura de livros.csv.\n");
-        fclose(arquivo);
-        return 0;
-    }
-    fclose(arquivo);
+    fecharArquivo(arquivo);
     return 1;
 }
 
@@ -89,7 +79,7 @@ void cadastrarLivro(void) {
         printf("[ERRO] Acervo lotado: limite de %d livros.\n", MAX_REGISTROS);
         return;
     }
-    livro.codigo = lerInteiro("Codigo do livro: ", 1, INT_MAX);
+    livro.codigo = lerInteiro("Codigo do livro: ", 1, 9999);
     if (buscarIndiceLivro(livro.codigo) != -1) {
         printf("[ERRO] Ja existe um livro com esse codigo.\n");
         return;
@@ -101,11 +91,12 @@ void cadastrarLivro(void) {
     livro.statusDisponivel = 'D';
     livro.ativo = 1;
     acervoLivros[totalLivros++] = livro;
-    if (salvarEstadoCSV()) printf("[OK] Livro cadastrado e CSV atualizado.\n");
+    salvarLivrosCSV();
+    printf("[OK] Livro cadastrado e CSV atualizado.\n");
 }
 
 void editarLivro(void) {
-    int codigo = lerInteiro("Codigo do livro a editar: ", 1, INT_MAX);
+    int codigo = lerInteiro("Codigo do livro a editar: ", 1, 9999);
     int indice = buscarIndiceLivro(codigo);
     struct Livro livro;
     if (indice == -1) {
@@ -120,11 +111,12 @@ void editarLivro(void) {
     lerTexto("Nova categoria: ", livro.categoria, sizeof livro.categoria);
     livro.valorReposicao = lerReal("Novo valor de reposicao (R$): ", 0, 1000000);
     acervoLivros[indice] = livro;
-    if (salvarEstadoCSV()) printf("[OK] Livro editado e CSV atualizado.\n");
+    salvarLivrosCSV();
+    printf("[OK] Livro editado e CSV atualizado.\n");
 }
 
 void removerLivro(void) {
-    int codigo = lerInteiro("Codigo do livro a remover: ", 1, INT_MAX);
+    int codigo = lerInteiro("Codigo do livro a remover: ", 1, 9999);
     int indice = buscarIndiceLivro(codigo);
     int i;
     if (indice == -1) {
@@ -137,7 +129,8 @@ void removerLivro(void) {
     }
     for (i = indice; i < totalLivros - 1; i++) acervoLivros[i] = acervoLivros[i + 1];
     totalLivros--;
-    if (salvarEstadoCSV()) printf("[OK] Livro removido e CSV atualizado.\n");
+    salvarLivrosCSV();
+    printf("[OK] Livro removido e CSV atualizado.\n");
 }
 
 void moduloLivros(void) {

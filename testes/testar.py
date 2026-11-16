@@ -182,6 +182,23 @@ class Biblioteca(unittest.TestCase):
         self.assertEqual(ordenados, sorted(ordenados, key=lambda r: (r[1].encode(), int(r[0]))))
         self.assertNotIn("[ERRO]", self.executar(0))
 
+    def test_16_id_maximo_e_erro_ao_abrir_para_gravar(self):
+        self.executar(4, 1, 10000, 9999, "Quincas Borba", "Romance", 30, "A", 0, 0, 0)
+        self.assertIsNotNone(self.por_id("reservas.csv", 9999))
+        self.assertIsNone(self.por_id("reservas.csv", 10000))
+        caminho = self.dados / "reservas.csv"
+        caminho.chmod(0o444)
+        try:
+            if os.access(caminho, os.W_OK):
+                self.skipTest("Usuario ainda possui permissao de escrita apos chmod")
+            antes = self.fotografia()
+            saida = self.executar(4, 4, 9999, codigo=1)
+            self.assertIn("[ERRO]", saida)
+            self.assertNotIn("Reserva removida", saida)
+            self.assertEqual(antes, self.fotografia())
+        finally:
+            caminho.chmod(0o644)
+
     def test_10_entradas_invalidas_e_limite_exato(self):
         titulo = "X" * 49
         autor = "Y" * 39
@@ -267,29 +284,7 @@ class Biblioteca(unittest.TestCase):
                     self.assertFalse((self.dados / "reservas.csv").exists())
                     self.assertEqual(antes, (self.dados / "livros.csv").read_bytes())
 
-    def test_15_falha_gravacao_desfaz_memoria_e_quatro_csv(self):
-        for nome in ARQUIVOS:
-            with self.subTest(nome=nome):
-                bloqueio = self.dados / (nome + ".tmp")
-                bloqueio.mkdir()
-                antes = self.fotografia()
-                saida = self.executar(4, 1, 21, "Quincas Borba", "Romance", 30, "A", 0, 2, 0, 0)
-                self.assertIn("Operacao cancelada", saida)
-                self.assertNotIn("Reserva cadastrada", saida)
-                self.assertIn("(8)", saida)
-                self.assertEqual(antes, self.fotografia())
-                self.assertFalse(list(self.dados.glob("*.bak")))
-                bloqueio.rmdir()
-                self.assertNotIn("[ERRO]", self.executar(0))
-
-    @unittest.skipUnless(Path("/dev/full").exists(), "Requer dispositivo /dev/full do Linux")
-    def test_16_falha_no_flush_preserva_csv(self):
-        (self.dados / "leitores.csv.tmp").symlink_to("/dev/full")
-        antes = self.fotografia()
-        self.assertIn("Operacao cancelada", self.executar(3, 4, 1, 20, 0, 0))
-        self.assertEqual(antes, self.fotografia())
-
-    def test_17_crlf_ultima_linha_sem_quebra_e_dados_vazios(self):
+    def test_15_crlf_ultima_linha_sem_quebra_e_dados_vazios(self):
         for nome in ARQUIVOS:
             caminho = self.dados / nome
             caminho.write_bytes(caminho.read_bytes().rstrip(b"\n").replace(b"\n", b"\r\n"))
@@ -301,11 +296,6 @@ class Biblioteca(unittest.TestCase):
         self.assertIn("0.00%", saida)
         self.assertNotIn("[ERRO]", saida)
 
-    def test_18_backup_pendente_bloqueia_sem_sobrescrever(self):
-        antes = self.fotografia()
-        (self.dados / "livros.csv.bak").write_bytes(antes["livros.csv"])
-        self.assertIn("Backup", self.executar(0, codigo=1))
-        self.assertEqual(antes, self.fotografia())
 
 
 if __name__ == "__main__":

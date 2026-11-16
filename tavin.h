@@ -2,8 +2,6 @@
 #define TAVIN_H
 
 /* Tavin: leitores, buscas textuais e ordenacao Bubble Sort. */
-#include "comum.h"
-#include "pedro.h"
 
 int buscarIndiceLeitor(int id) {
     int i;
@@ -13,57 +11,46 @@ int buscarIndiceLeitor(int id) {
     return -1;
 }
 
-int salvarLeitoresCSV(void) {
+void salvarLeitoresCSV(void) {
     int i;
-    FILE *arquivo = fopen("leitores.csv.tmp", "w");
-    if (arquivo == NULL) {
-        printf("[ERRO] Nao foi possivel abrir leitores.csv.tmp.\n");
-        return 0;
-    }
+    FILE *arquivo = abrirArquivo("leitores.csv", "w");
     for (i = 0; i < totalLeitores; i++) {
         fprintf(arquivo, "%d;%s;%s;%c;%.2f;%d\n",
                 ficharioLeitores[i].codigoLeitor, ficharioLeitores[i].nome,
                 ficharioLeitores[i].telefone, ficharioLeitores[i].tipoAssociado,
                 ficharioLeitores[i].saldoMultas, ficharioLeitores[i].ativo);
     }
-    return fecharCSV(arquivo, "leitores.csv.tmp", "leitores.csv");
+    fecharArquivo(arquivo);
 }
 
 int carregarLeitoresCSV(void) {
-    char linha[512], *campos[6];
-    int numeroLinha = 0;
-    FILE *arquivo = fopen("leitores.csv", "r");
+    char linha[512], extra;
+    int numeroLinha = 0, lidos;
     struct Leitor leitor;
-    if (arquivo == NULL) {
-        printf("[ERRO] Nao foi possivel ler leitores.csv.\n");
-        return 0;
-    }
+    FILE *arquivo = abrirArquivo("leitores.csv", "r");
     totalLeitores = 0;
     while (fgets(linha, sizeof linha, arquivo) != NULL) {
         numeroLinha++;
-        if ((strchr(linha, '\n') == NULL && !feof(arquivo)) ||
-            totalLeitores >= MAX_REGISTROS ||
-            !separarCamposCSV(linha, campos, 6) ||
-            !converterInteiro(campos[0], 1, INT_MAX, &leitor.codigoLeitor) ||
+        lidos = sscanf(linha, "%4d;%49[^;\r\n];%19[^;\r\n];%c;%f;%1d %c",
+                       &leitor.codigoLeitor, leitor.nome, leitor.telefone,
+                       &leitor.tipoAssociado, &leitor.saldoMultas,
+                       &leitor.ativo, &extra);
+        if (lidos != 6 || (strchr(linha, '\n') == NULL && !feof(arquivo)) ||
+            totalLeitores >= MAX_REGISTROS || leitor.codigoLeitor <= 0 ||
             buscarIndiceLeitor(leitor.codigoLeitor) != -1 ||
-            !copiarCampo(leitor.nome, sizeof leitor.nome, campos[1]) ||
-            !copiarCampo(leitor.telefone, sizeof leitor.telefone, campos[2]) ||
-            strlen(campos[3]) != 1 || strchr("PV", campos[3][0]) == NULL ||
-            !converterReal(campos[4], 0, 1000000, &leitor.saldoMultas) ||
-            !converterInteiro(campos[5], 1, 1, &leitor.ativo)) {
+            strspn(leitor.nome, " \t") == strlen(leitor.nome) ||
+            strspn(leitor.telefone, " \t") == strlen(leitor.telefone) ||
+            (leitor.tipoAssociado != 'P' && leitor.tipoAssociado != 'V') ||
+            !(leitor.saldoMultas >= 0 && leitor.saldoMultas <= 1000000) ||
+            leitor.ativo != 1) {
             printf("[ERRO] leitores.csv: linha %d invalida ou ID duplicado.\n", numeroLinha);
-            fclose(arquivo);
+            fecharArquivo(arquivo);
             return 0;
         }
-        leitor.tipoAssociado = campos[3][0];
-        ficharioLeitores[totalLeitores++] = leitor;
+        ficharioLeitores[totalLeitores] = leitor;
+        totalLeitores++;
     }
-    if (ferror(arquivo)) {
-        printf("[ERRO] Falha durante a leitura de leitores.csv.\n");
-        fclose(arquivo);
-        return 0;
-    }
-    fclose(arquivo);
+    fecharArquivo(arquivo);
     return 1;
 }
 
@@ -101,7 +88,7 @@ void cadastrarLeitor(void) {
         printf("[ERRO] Fichario lotado: limite de %d leitores.\n", MAX_REGISTROS);
         return;
     }
-    leitor.codigoLeitor = lerInteiro("Codigo do leitor: ", 1, INT_MAX);
+    leitor.codigoLeitor = lerInteiro("Codigo do leitor: ", 1, 9999);
     if (buscarIndiceLeitor(leitor.codigoLeitor) != -1) {
         printf("[ERRO] Ja existe um leitor com esse codigo.\n");
         return;
@@ -112,11 +99,12 @@ void cadastrarLeitor(void) {
     leitor.saldoMultas = 0;
     leitor.ativo = 1;
     ficharioLeitores[totalLeitores++] = leitor;
-    if (salvarEstadoCSV()) printf("[OK] Leitor cadastrado e CSV atualizado.\n");
+    salvarLeitoresCSV();
+    printf("[OK] Leitor cadastrado e CSV atualizado.\n");
 }
 
 void editarLeitor(void) {
-    int codigo = lerInteiro("Codigo do leitor a editar: ", 1, INT_MAX);
+    int codigo = lerInteiro("Codigo do leitor a editar: ", 1, 9999);
     int indice = buscarIndiceLeitor(codigo);
     struct Leitor leitor;
     if (indice == -1) {
@@ -130,11 +118,13 @@ void editarLeitor(void) {
     leitor.tipoAssociado = lerCaractere("Novo tipo (P=Padrao, V=VIP): ", "PV");
     ficharioLeitores[indice] = leitor;
     atualizarNomesEmprestimos();
-    if (salvarEstadoCSV()) printf("[OK] Leitor editado e CSV atualizado.\n");
+    salvarLeitoresCSV();
+    salvarEmprestimosCSV();
+    printf("[OK] Leitor editado e CSV atualizado.\n");
 }
 
 void removerLeitor(void) {
-    int codigo = lerInteiro("Codigo do leitor a remover: ", 1, INT_MAX);
+    int codigo = lerInteiro("Codigo do leitor a remover: ", 1, 9999);
     int indice = buscarIndiceLeitor(codigo);
     int i;
     if (indice == -1) {
@@ -147,14 +137,15 @@ void removerLeitor(void) {
     }
     for (i = indice; i < totalLeitores - 1; i++) ficharioLeitores[i] = ficharioLeitores[i + 1];
     totalLeitores--;
-    if (salvarEstadoCSV()) printf("[OK] Leitor removido e CSV atualizado.\n");
+    salvarLeitoresCSV();
+    printf("[OK] Leitor removido e CSV atualizado.\n");
 }
 
 void buscarLivroPorCodigoOuTitulo(void) {
     int opcao = lerInteiro("Buscar livro por 1=Codigo ou 2=Titulo: ", 1, 2);
     int i, encontrados = 0;
     if (opcao == 1) {
-        int codigo = lerInteiro("Codigo do livro: ", 1, INT_MAX);
+        int codigo = lerInteiro("Codigo do livro: ", 1, 9999);
         i = buscarIndiceLivro(codigo);
         if (i != -1) {
             exibirLivro(i);
@@ -201,10 +192,9 @@ void ordenarAcervoBubbleSort(void) {
             }
         }
     }
-    if (salvarEstadoCSV()) {
-        printf("[OK] Acervo ordenado por titulo com Bubble Sort e salvo no CSV.\n");
-        listarLivros();
-    }
+    salvarLivrosCSV();
+    printf("[OK] Acervo ordenado por titulo com Bubble Sort e salvo no CSV.\n");
+    listarLivros();
 }
 
 void moduloBuscasEFichario(void) {
